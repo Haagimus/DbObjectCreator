@@ -1,179 +1,412 @@
-from os import getenv
-
-from dotenv import load_dotenv
+import mysql.connector
+from enum import Enum
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sshtunnel import SSHTunnelForwarder
-import mysql.connector
 
-load_dotenv()
 Session = sessionmaker(autoflush=False)
+
+
+class DbType(Enum):
+    MySQL = 1
+    PostgreSQL = 2
+    MSSQL = 3
 
 
 class DbObject:
     """
-    This class outlines a generic DB object that can then be used to store necessary properties for use in other
-    methods.
+    This class outlines a generic DB object that can then be used to store necessary properties for use in other methods.
 
-    :return: a dbobject with the necessary
-    :type: class object
+    Yields
+    ----------
+    DbObject
+        A DbObject class object
     """
 
-    def __init__(self, dbtype=None, dbhost=None, dbuser=None, dbpass=None):
-        self._tunnel = None
-        self._engine = None
-        self._session = None
-        self._cursor = None
-        self._conn_str = None
-        self._local_port = None
-        self._local_address = None
+    def __init__(self, dbtype, db_host, db_port, db_name, db_user, db_pass,
+                 ssh_host=None, ssh_port=None, ssh_pk=None, ssh_user=None, tunnel=None,
+                 engine=None, session=None, cursor=None, conn_str=None, local_port=None, local_addr=None):
+        """Create a new :class:`.DbObject` instance.
 
-        self.__db_type = dbtype
+        Summary
+        ----------
+        This will create a DbObject which contains all necessary properties and methods to interact with a database.
 
-        # Retrieve the env variables for the ssh connection
-        self.__ssh_host = getenv('SSHHOST')
-        self.__ssh_port = int(getenv('SSHPORT'))
-        self.__ssh_user = getenv("SSHUSER")
-        self.__ssh_pk = "assets/ssh_pk.pem"
+        Parameters
+        ----------
+        dbtype: int
+            This is the database type for this object, used to generate the correct connection string.
+            1 = MySQL | 2 = PostgreSQL | 3 = MSSQL
+        ssh_host : str
+            This is the host address of the SSH tunnel.
+        ssh_port : int
+            This is the port of the SSH tunnel.
+        ssh_pk : file
+            This is the file path to the RSA private key pem file.
+        ssh_user : str
+            This is the SSH login username.
+        db_host : str
+            This is the database host address.
+        db_port : int
+            This is the database host port.
+        db_name : str
+            This is the database name for the host server.
+        db_user : str
+            This is the login account name for the database.
+        db_pass : str
+            This is the login account password for the database.
+        tunnel: SSHTunnelForwarder
+            This is an established SSH Tunnel proxy when established.
+        engine: object
+            Connects a Pool and Dialect together to provide a source of database connectivity and behavior.
+        session: sessionmaker
+            Manages persistence operations for ORM-mapped objects.
+        cursor: object
+            This is the object you use to interact with the database.
+        conn_str: str
+            The constructed connection string for the host database server.
+        local_port: int
+            The local port provided by the tunnel local_bind_port
+        local_addr: str
+            The local address provided by the tunnel local_bind_address.
+        """
+        self._db_type: int = DbType(dbtype).name
+        self.__ssh_host: str = ssh_host
+        self.__ssh_port: int = ssh_port
+        self.__ssh_pk: str = ssh_pk
+        self.__ssh_user: str = ssh_user
+        self.__db_host: str = db_host
+        self.__db_port: int = db_port
+        self.__db_name: str = db_name
+        self.__db_user: str = db_user
+        self.__db_pass: str = db_pass
+        self._tunnel: SSHTunnelForwarder = tunnel
+        self._engine: object = engine
+        self._session: sessionmaker = session
+        self._cursor: object = cursor
+        self._conn_str: str = conn_str
+        self._local_port: int = local_port
+        self._local_address: str = local_addr
 
-        # Retrieve the env variables for the db connection
-        self.__db_host = getenv('DBHOST')
-        self.__db_port = int(getenv('DBPORT'))  #
-        self.__db_user = getenv('DBUSER')  # This is your account username
-        self.__db_pass = getenv('DBPASS')  # This is your account password
-        self.__db_name = getenv('DBNAME')  # This is the database name itself
+    # region Getters and Setters for the object
+    @property
+    def db_type(self):
+        return self._db_type
 
-    # region Getters for the object
+    @db_type.setter
+    def db_type(self, db_type):
+        self._db_type = DbType(db_type).name
+
+    @property
+    def ssh_host(self):
+        return self.__ssh_host
+
+    @ssh_host.setter
+    def ssh_host(self, ssh_host):
+        self.__ssh_host = ssh_host
+
+    @property
+    def ssh_port(self):
+        return self.__ssh_port
+
+    @ssh_port.setter
+    def ssh_port(self, ssh_port):
+        self.__ssh_port = ssh_port
+
+    @property
+    def ssh_pk(self):
+        return self.__ssh_pk
+
+    @ssh_pk.setter
+    def ssh_pk(self, ssh_pk):
+        self.__ssh_pk = ssh_pk
+
+    @property
+    def ssh_user(self):
+        return self.__ssh_user
+
+    @ssh_user.setter
+    def ssh_user(self, ssh_user):
+        self.__ssh_user = ssh_user
+
+    @property
+    def db_host(self):
+        return self.__db_host
+
+    @db_host.setter
+    def db_host(self, db_host):
+        self.__db_host = db_host
+
+    @property
+    def db_port(self):
+        return self.__db_port
+
+    @db_port.setter
+    def db_port(self, db_port):
+        self.__db_port = db_port
+
+    @property
+    def db_name(self):
+        return self.__db_name
+
+    @db_name.setter
+    def db_name(self, db_name):
+        self.__db_name = db_name
+
+    @property
+    def db_user(self):
+        return self.__db_user
+
+    @db_user.setter
+    def db_user(self, db_user):
+        self.__db_user = db_user
+
+    @property
+    def db_pass(self):
+        return self.__db_pass
+
+    @db_pass.setter
+    def db_pass(self, db_pass):
+        self.__db_pass = db_pass
+
     @property
     def tunnel(self):
         return self._tunnel
+
+    @tunnel.setter
+    def tunnel(self, tunnel):
+        self._tunnel = tunnel
 
     @property
     def engine(self):
         return self._engine
 
+    @engine.setter
+    def engine(self, engine):
+        self._engine = engine
+
     @property
     def session(self):
         return self._session
+
+    @session.setter
+    def session(self, session):
+        self._session = session
 
     @property
     def cursor(self):
         return self._cursor
 
+    @cursor.setter
+    def cursor(self, cursor):
+        self._cursor = cursor
+
     @property
     def conn_str(self):
         return self._conn_str
+
+    @conn_str.setter
+    def conn_str(self, conn_str):
+        self._conn_str = conn_str
 
     @property
     def local_port(self):
         return self._local_port
 
+    @local_port.setter
+    def local_port(self, local_port):
+        self._local_port = local_port
+
     @property
     def local_address(self):
         return self._local_address
+
+    @local_address.setter
+    def local_address(self, local_address):
+        self._local_address = local_address
     # endregion
 
     def create_tunnel(self):
-        """Creates an SSH tunnel to allow connecting to an AWS service.
-        Nothing is returned but the self.tunnel property is set.
+        """Creates an SSH proxy tunnel for secure connections then binds that tunnel to the _tunnel property of the DbObject.
+
+        Parameters
+        ----------
+
+        Yields
+        ----------
+        self._tunnel : SSHTunnelForwarder
         """
-        try:
-            # print('[SSH] Attempting to establish SSH tunnel')
-            self._tunnel = SSHTunnelForwarder(
-                (self.__ssh_host, self.__ssh_port),
-                ssh_username=self.__ssh_user,
-                ssh_pkey=self.__ssh_pk,
-                remote_bind_address=(self.__db_host, self.__db_port))
-            self._tunnel.daemon_forward_servers = True
-            self._tunnel.start()
-            self._local_port = str(self._tunnel.local_bind_port)
-            self._local_address = str(self._tunnel.local_bind_address)
-        except BaseException as e:
-            if 'Could not establish session to SSH gateway' in e.args[0]:
-                print(f'CRITICAL :: {e} :: Check your VPN connection, credentials and RSA key')
-            raise
+        if self.db_type == 'MySQL':
+            try:
+                self.tunnel = SSHTunnelForwarder(
+                    (self.ssh_host, self.ssh_port),
+                    ssh_username=self.ssh_user,
+                    ssh_pkey=self.ssh_pk,
+                    remote_bind_address=(self.db_host, self.db_port))
+                self.tunnel.daemon_forward_servers = True
+                self.tunnel.start()
+                self.local_port = str(self.tunnel.local_bind_port)
+                self.local_address = str(self.tunnel.local_bind_address)
+            except Exception as e:
+                raise DbObjectError(f'{e} for {self.db_name}({self.db_type})')
+        elif self.db_type == 'PostgreSQL' or self._db_type == 'MSSQL':
+            # The database is either a postgresql or mssql which do not require an SSH Tunnel proxy so just pass
+            pass
 
     def initialize_engine(self):
-        """Creates a sqlalchemy engine.
-        Nothing is returned but the self.conn_str and
-        self.engine properties are set.
-        """
-        if self._local_port is None:
-            self.create_tunnel()
+        """Instantiates a sqlalchemy engine for the requested database then binds the connection string and engine to their respective properties within the DbObject.
 
-        if self._local_port is not None:
-            # print('[SQL] Generating connection string')
-            self._conn_str = f"mysql+pymysql://{self.__db_user}:{self.__db_pass}@127.0.0.1:{self._local_port}/" \
-                            f"{self.__db_name}"
-            # print('[SQL] Creating SQL engine')
-            self._engine = create_engine(self._conn_str, pool_recycle=280)
+        Yields
+        ----------
+        self._conn_str : str
+        self._engine : object
+        """
+
+        if self.db_type == 'MySQL':
+            if hasattr(self, '_tunnel'):
+                self.connection_string_builder()
+        else:
+            self.connection_string_builder()
+        try:
+            self.engine = create_engine(self.conn_str, pool_recycle=280)
+        except Exception as e:
+            raise DbObjectError(e)
+
+    def connection_string_builder(self):
+        """This just builds a database server connection string based on the self.db_type property.
+        :return: A generated database connection string.
+        :rtype: str
+        """
+        if self.db_type == 'MySQL':
+            if hasattr(self, '_tunnel'):
+                self.conn_str = f"mysql+pymysql://{self.db_user}:{self.db_pass}@" \
+                                 f"localhost:{self.local_port}/{self.db_name}"
+            else:
+                raise DbObjectError(
+                    'SSH tunnel not established, please setup the SSH tunnel before attempting to connect the engine.')
+        elif self.db_type == 'PostgreSQL':
+            self.conn_str = f"postgresql+psycopg2://{self.db_user}:{self.db_pass}@" \
+                             f"{self.db_host}:{self.db_port}/{self.db_name}"
+        elif self.db_type == 'MSSQL':
+            self.conn_str = f'mssql+pyodbc://{self.db_user}:{self.db_pass}@' \
+                             f'{self.db_host}:{self.db_port}/{self.db_name}?driver=SQL+Server'
+        else:  # The db type is not defined
+            raise DbObjectError('Database Type (dbtype) not defined, please define the database type using '
+                                'object.db_type before attempting to establish the SSH Tunnel.')
 
     def initialize_session(self):
-        """Creates a sessionmaker factory that can be used to run queries against the database.
-        Nothing is returned but the self.session property is set.
+        """Creates a sessionmaker factory that can be used to run queries against the database and also sets the self.session property.
+
+        Returns
+        ----------
+        None
         """
-        if self._engine is None:
+        if not hasattr(self, 'engine'):
             self.initialize_engine()
 
-        if self._engine is not None:
-            # print('[SQL] Creating SQL session')
+        elif hasattr(self, 'engine'):
             self._session = Session(bind=self._engine, autoflush=False, autocommit=False)
+
+    def reflect_database_table(self, table_name=None):
+        """Generates a class model of the requested table.
+
+        Parameters
+        ----------
+        table_name : str
+            The table name you want to generate a class mode for.
+
+        Returns
+        ----------
+        table : class
+            Requested table generated base class.
+        """
+        from sqlalchemy.ext.automap import automap_base
+
+        if hasattr(self, 'engine'):
+            base = automap_base()
+            base.metadata.drop_all(self.engine)
+            base.metadata.create_all(self.engine)
+
+            # reflect the tables
+            base.prepare(self._engine, reflect=True)
+            try:
+                table = base.metadata.tables[table_name]
+                return table
+            except BaseException as e:
+                raise DbObjectError(e)
+        else:
+            raise DbObjectError('No engine has been initialized for this object, please execute obj.initialize_engine()'
+                                ' and try the reflection again.')
 
     def create_cursor(self):
         """Create a new cursor to execute queries with.
 
-        :return: a cursor that can be used to execute queries
-        :rtype: cursor
+        Returns
+        ----------
+        cursor : cursor
+             A cursor that can be used to execute queries
         """
-        with self._tunnel:
-            cnx = mysql.connector.connect(host=self._local_address,
-                                          port=self._local_port,
-                                          user=self.__db_user,
-                                          password=self.__db_pass,
-                                          database=self.__db_name)
+        try:
+            if self.db_type == 'MySQL':
+                with self.tunnel:
+                    cnx = mysql.connector.connect(host=self.local_address,
+                                                  port=self.local_port,
+                                                  user=self.db_user,
+                                                  password=self.db_pass,
+                                                  database=self.db_name)
+            elif self.db_type == 'PostgreSQL' or self.db_type == 'MSSQL':
+                cnx = mysql.connector.connect(host=self.db_host,
+                                              port=self.db_port,
+                                              user=self.db_user,
+                                              password=self.db_pass,
+                                              database=self.db_name)
+        except Exception as e:
+            raise DbObjectError(e)
         self._cursor = cnx.cursor()
 
     def close_all(self):
-        """Closes any existing database connections/sessions/cursors if they are open.
+        """Closes any existing database workers if they are open. Includes cursors, sessions, engines and tunnels.
 
-        :return: None
-        :rtype: None
+        Returns
+        ----------
+        None
         """
         try:
-            if self._cursor is not None:
-                self._cursor.close()
-            # print('[SQL] Disposing of SQL session')
-            if self._session is not None:
-                self._session.close()
-            # print('[SQL] Disposing SQL engine')
-            if self._engine is not None:
-                self._engine.dispose()
-            # print('[SSH] Disposing SSH tunnel')
-            if self._tunnel is not None:
-                self._tunnel.stop()
+            if self.engine is not None:
+                self.engine.dispose()
+            if self.tunnel is not None:
+                self.tunnel.stop()
         except Exception as e:
-            print(e)
+            raise DbObjectError(e)
 
-    def reflect_database_table(self, table_name=None):
-        """Generates an ORM model of the passed in table and returns the object and also a
-        separate list containing just the column headers
-        :param table_name: the table name you want to generate a class mode for
-        :type table_name: str
-        :return: requested table generated base class | list of table column headers
-        :rtype: DeclarativeMeta | List
-        """
-        from sqlalchemy.ext.automap import automap_base
-
-        base = automap_base()
-        base.metadata.drop_all(self._engine)
-        base.metadata.create_all(self._engine)
-
-        # reflect the tables
-        base.prepare(self._engine, reflect=True)
+    def orm_sql_query(self):
         try:
-            table = base.classes[table_name]
-            cols = [attr for attr in dir(table) if not attr.startswith('_')]
-            return table, cols
-        except KeyError:
-            return 'Requested table not found'
+            self.initialize_session()
 
+            # do stuff
+        finally:
+            self.session.close()
+
+    def string_sql_query(self):
+        try:
+            self.create_cursor()
+
+            # do stuff
+        finally:
+            self.cursor.close()
+
+
+class DbObjectError(Exception):
+    """A custom exception handler for internal errors."""
+
+    def __init__(self, *args):
+        if args:
+            self.message = args[0]
+        else:
+            self.message = None
+
+    def __str__(self):
+        if self.message:
+            return f'DbObjectError, {self.message}'
+        else:
+            return 'DbObjectError has been raised'
