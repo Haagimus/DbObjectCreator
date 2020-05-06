@@ -3,6 +3,7 @@ from enum import Enum
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sshtunnel import SSHTunnelForwarder
+import pyodbc
 
 Session = sessionmaker(autoflush=False)
 
@@ -224,6 +225,7 @@ class DbObject:
     @local_address.setter
     def local_address(self, local_address):
         self._local_address = local_address
+
     # endregion
 
     def create_tunnel(self):
@@ -235,6 +237,7 @@ class DbObject:
         Yields
         ----------
         self._tunnel : SSHTunnelForwarder
+            A secure proxy tunnel connection
         """
         if self.db_type == 'MySQL':
             try:
@@ -258,8 +261,8 @@ class DbObject:
 
         Yields
         ----------
-        self._conn_str : str
-        self._engine : object
+        self.engine : object
+            A created sqlalchemy database engine
         """
 
         if self.db_type == 'MySQL':
@@ -267,6 +270,7 @@ class DbObject:
                 self.connection_string_builder()
         else:
             self.connection_string_builder()
+
         try:
             self.engine = create_engine(self.conn_str, pool_recycle=280)
         except Exception as e:
@@ -274,22 +278,31 @@ class DbObject:
 
     def connection_string_builder(self):
         """This just builds a database server connection string based on the self.db_type property.
-        :return: A generated database connection string.
-        :rtype: str
+
+        Yields
+        ----------
+        self.conn_str : str
+            A generated database connection string.
         """
         if self.db_type == 'MySQL':
             if hasattr(self, '_tunnel'):
                 self.conn_str = f"mysql+pymysql://{self.db_user}:{self.db_pass}@" \
-                                 f"localhost:{self.local_port}/{self.db_name}"
+                                f"localhost:{self.local_port}/{self.db_name}"
             else:
                 raise DbObjectError(
                     'SSH tunnel not established, please setup the SSH tunnel before attempting to connect the engine.')
         elif self.db_type == 'PostgreSQL':
             self.conn_str = f"postgresql+psycopg2://{self.db_user}:{self.db_pass}@" \
-                             f"{self.db_host}:{self.db_port}/{self.db_name}"
+                            f"{self.db_host}:{self.db_port}/{self.db_name}"
         elif self.db_type == 'MSSQL':
-            self.conn_str = f'mssql+pyodbc://{self.db_user}:{self.db_pass}@' \
-                             f'{self.db_host}:{self.db_port}/{self.db_name}?driver=SQL+Server'
+            import os
+
+            if os.name == 'nt':
+                self.conn_str = f'mssql://{self.db_user}:{self.db_pass}@' \
+                                f'{self.db_host}:{self.db_port}/{self.db_name}?driver=SQL+Server'
+            elif os.name == 'posix':
+                self.conn_str = f'mssql+pyodbc://{self.db_user}:{self.db_pass}@{self.db_host}:{self.db_port}/' \
+                                f'{self.db_name}?driver=FreeTDS'
         else:  # The db type is not defined
             raise DbObjectError('Database Type (dbtype) not defined, please define the database type using '
                                 'object.db_type before attempting to establish the SSH Tunnel.')
@@ -297,9 +310,10 @@ class DbObject:
     def initialize_session(self):
         """Creates a sessionmaker factory that can be used to run queries against the database and also sets the self.session property.
 
-        Returns
+        Yields
         ----------
-        None
+        self.session : Session
+            A sessionmaker session for executing queries
         """
         if not hasattr(self, 'engine'):
             self.initialize_engine()
@@ -382,16 +396,14 @@ class DbObject:
     def orm_sql_query(self):
         try:
             self.initialize_session()
-
-            # do stuff
+            # TODO: Write this function
         finally:
             self.session.close()
 
     def string_sql_query(self):
         try:
             self.create_cursor()
-
-            # do stuff
+            # TODO: Write this function
         finally:
             self.cursor.close()
 
