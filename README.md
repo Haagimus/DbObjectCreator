@@ -1,7 +1,6 @@
-# Prometues
-This application provides a method of creating database connector objects for quick and easy access to multiple
-databases (both types and servers). The name [Prometheus](https://en.wikipedia.org/wiki/Prometheus) comes from the greek
-titan who was credited with the creation of humanity from clay.
+# Database Object Creator (D.O.C.)
+This library provides a method of creating database connector objects for quick and easy access to multiple
+databases (both types and servers).
 
 ---
 
