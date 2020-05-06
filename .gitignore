@@ -141,4 +141,7 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-assets/ssh_pk.pem
+assets/
+tests/
+!/main.py
+backup_README.md
