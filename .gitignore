@@ -143,5 +143,5 @@ cython_debug/
 
 assets/
 tests/
-!/main.py
+!/tests.py
 backup_README.md

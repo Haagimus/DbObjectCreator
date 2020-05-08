@@ -3,7 +3,7 @@ from enum import Enum
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sshtunnel import SSHTunnelForwarder
-import pyodbc
+import pandas as pd
 
 Session = sessionmaker(autoflush=False)
 
@@ -25,7 +25,7 @@ class DbObject:
     """
 
     def __init__(self, dbtype, db_host, db_port, db_name, db_user, db_pass,
-                 ssh_host=None, ssh_port=None, ssh_pk=None, ssh_user=None, tunnel=None,
+                 ssh_host=None, ssh_port=None, ssh_pk=None, ssh_user=None, tunnel=None, sa_engine=None,
                  engine=None, session=None, cursor=None, conn_str=None, local_port=None, local_addr=None):
         """Create a new :class:`.DbObject` instance.
 
@@ -58,8 +58,10 @@ class DbObject:
             This is the login account password for the database.
         tunnel: SSHTunnelForwarder
             This is an established SSH Tunnel proxy when established.
+        sa_engine: object
+            This is a sqlalchemy database connection engine used for performing reflections and orm queries.
         engine: object
-            Connects a Pool and Dialect together to provide a source of database connectivity and behavior.
+            This is a database specific connection engine used for raw sql query execution.
         session: sessionmaker
             Manages persistence operations for ORM-mapped objects.
         cursor: object
@@ -82,6 +84,7 @@ class DbObject:
         self.__db_user: str = db_user
         self.__db_pass: str = db_pass
         self._tunnel: SSHTunnelForwarder = tunnel
+        self._sa_engine: object = sa_engine
         self._engine: object = engine
         self._session: sessionmaker = session
         self._cursor: object = cursor
@@ -187,6 +190,14 @@ class DbObject:
         self._engine = engine
 
     @property
+    def sa_engine(self):
+        return self._sa_engine
+
+    @sa_engine.setter
+    def sa_engine(self, sa_engine):
+        self._sa_engine = sa_engine
+
+    @property
     def session(self):
         return self._session
 
@@ -248,7 +259,7 @@ class DbObject:
                     remote_bind_address=(self.db_host, self.db_port))
                 self.tunnel.daemon_forward_servers = True
                 self.tunnel.start()
-                self.local_port = str(self.tunnel.local_bind_port)
+                self.local_port = int(self.tunnel.local_bind_port)
                 self.local_address = str(self.tunnel.local_bind_address)
             except Exception as e:
                 raise DbObjectError(f'{e} for {self.db_name}({self.db_type})')
@@ -265,16 +276,35 @@ class DbObject:
             A created sqlalchemy database engine
         """
 
-        if self.db_type == 'MySQL':
-            if hasattr(self, '_tunnel'):
-                self.connection_string_builder()
-        else:
-            self.connection_string_builder()
+        # Create a sqlalchemy engine for the DbObject
+        self.connection_string_builder()
+        self.sa_engine = create_engine(self.conn_str)
 
-        try:
-            self.engine = create_engine(self.conn_str, pool_recycle=280)
-        except Exception as e:
-            raise DbObjectError(e)
+        # Create a database type specific engine for the DbObject
+        if self.db_type == 'MySQL':
+            import pymysql
+            try:
+                self.engine = pymysql.connect(user=self.db_user, passwd=self.db_pass,
+                                              host='127.0.0.1', port=self.local_port,
+                                              database=self.db_name)
+            except Exception as e:
+                raise DbObjectError(e)
+        elif self.db_type == 'PostgreSQL':
+            import psycopg2
+            try:
+                self.engine = psycopg2.connect(user=self.db_user, password=self.db_pass,
+                                               host=self.db_host, port=self.db_port,
+                                               database=self.db_name)
+            except Exception as e:
+                raise DbObjectError(e)
+        elif self.db_type == 'MSSQL':
+            import pymssql
+            try:
+                self.engine = pymssql.connect(user=self.db_user, password=self.db_pass,
+                                              host=f'{self.db_host}:{self.db_port}',
+                                              database=self.db_name)
+            except Exception as e:
+                raise DbObjectError(e)
 
     def connection_string_builder(self):
         """This just builds a database server connection string based on the self.db_type property.
@@ -338,11 +368,11 @@ class DbObject:
 
         if hasattr(self, 'engine'):
             base = automap_base()
-            base.metadata.drop_all(self.engine)
-            base.metadata.create_all(self.engine)
+            base.metadata.drop_all(self.sa_engine)
+            base.metadata.create_all(self.sa_engine)
 
             # reflect the tables
-            base.prepare(self._engine, reflect=True)
+            base.prepare(self.sa_engine, reflect=True)
             try:
                 table = base.metadata.tables[table_name]
                 return table
@@ -387,7 +417,9 @@ class DbObject:
         """
         try:
             if self.engine is not None:
-                self.engine.dispose()
+                self.engine.close()
+            if self.sa_engine is not None:
+                self.sa_engine.dispose()
             if self.tunnel is not None:
                 self.tunnel.stop()
         except Exception as e:
@@ -400,12 +432,28 @@ class DbObject:
         finally:
             self.session.close()
 
-    def string_sql_query(self):
+    def string_sql_query(self, query=None):
+        """Attempts to execute the passed in query argument.
+
+        Parameters
+        ----------
+        query : str
+            The raw sql query that you want to execute.
+
+        Returns
+        ----------
+        dict : tuple
+            Dictionary of tuples containing the requested table rows.
+        """
+
         try:
-            self.create_cursor()
-            # TODO: Write this function
-        finally:
-            self.cursor.close()
+            with self.engine.cursor() as cursor:
+                cursor.execute(query)
+                rs = cursor.fetchall()
+            return rs
+
+        except Exception as e:
+            raise DbObjectError(e)
 
 
 class DbObjectError(Exception):
