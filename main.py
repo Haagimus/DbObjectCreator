@@ -3,7 +3,7 @@ from time import time
 
 from dotenv import load_dotenv
 
-from DBObjectCreator import DbObject
+import DBObjectCreator
 
 load_dotenv()
 
@@ -82,24 +82,33 @@ def test_sqlalchemy_core():
         dbtype=3, db_host=mss_db_host, db_port=mss_db_port, db_name=mss_db_name, db_user=mss_db_user,
         db_pass=mss_db_pass)
 
-    dbojects = [analyticsapiprod, bridgeapiprod, nonprodpgsql, prodpgsql, mssql]
+    dbobjects = [analyticsapiprod, bridgeapiprod, nonprodpgsql, prodpgsql, mssql]
+    # dbobjects = [mssql]
 
-    for obj in dbojects:
-        obj.create_tunnel()
-        obj.initialize_engine()
-    obj = None
+    try:
+        for obj in dbobjects:
+            obj.create_tunnel()
+            obj.initialize_engine()
+        obj = None
 
-    aapmodel = analyticsapiprod.reflect_database_table(table_name='transaction_logs_gh')
-    bapmodel = bridgeapiprod.reflect_database_table(table_name='message_logs')
-    nppmodel = nonprodpgsql.reflect_database_table(table_name='users')
-    ppmodel = prodpgsql.reflect_database_table(table_name='connectors')
-    mssqlmodel = mssql.reflect_database_table(table_name='spt_monitor')
+        aapmodel = analyticsapiprod.reflect_database_table(table_name='transaction_logs_gh')
+        bapmodel = bridgeapiprod.reflect_database_table(table_name='message_logs')
+        nppmodel = nonprodpgsql.reflect_database_table(table_name='users')
+        ppmodel = prodpgsql.reflect_database_table(table_name='connectors')
+        mssqlmodel = mssql.reflect_database_table(table_name='spt_monitor')
+    except Exception as e:
+        for obj in dbobjects:
+            obj.close_all()
+        raise e
+        return
+
     total_cols = len(aapmodel.columns) + len(bapmodel.columns) + len(nppmodel.columns) + len(ppmodel.columns) + len(
         mssqlmodel.columns)
+    # total_cols = len(mssqlmodel.columns)
     print(
-        f'Total time connecting to {len(dbojects)} database servers and generating schema map on {total_cols} '
+        f'Total time connecting to {len(dbobjects)} database servers and generating schema map on {total_cols} '
         f'columns: {time() - t0:.2f} seconds')
-    for obj in dbojects:
+    for obj in dbobjects:
         obj.close_all()
 
 
