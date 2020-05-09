@@ -142,6 +142,6 @@ dmypy.json
 cython_debug/
 
 assets/
-tests/
-!/main.py
+DbObjectCreator.egg-info/
 backup_README.md
+tests.py

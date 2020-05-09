@@ -9,3 +9,4 @@ This repo can be installed in a python 3 environment with the following command
 
 `pip install git+https:github.com/BridgeCr/davinci`
 
+This library supports both Windows and OSX architecture. If installing on OSX you will need FreeTDS installed.
