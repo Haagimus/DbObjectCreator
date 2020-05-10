@@ -426,6 +426,19 @@ class DbObject:
             raise DbObjectError(e)
 
     def orm_sql_query(self):
+        """Attempts to execute the ORM query argument. This requires a table reflection or existing
+        model to perform the query.
+
+        Parameters
+        ----------
+        query : str
+            The raw sql query that you want to execute.
+
+        Returns
+        ----------
+        dict : tuple
+            Dictionary of tuples containing the requested table rows.
+        """
         try:
             self.initialize_session()
             # TODO: Write this function
