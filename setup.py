@@ -1,12 +1,13 @@
 from setuptools import setup, find_packages
+import DbObjectCreator.__init__ as init
 
 with open('README.md', 'r') as ld:
     long_description = ld.read()
 
 setup(
     name='DbObjectCreator',
-    version='0.9',
-    author="Haagimus",
+    version=init.__version__,
+    author=init.__author__,
     author_email="ghaag@bridgeconnector.com",
     description='A database object creator',
     long_description=long_description,
