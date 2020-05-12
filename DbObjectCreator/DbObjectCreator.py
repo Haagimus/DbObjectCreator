@@ -2,8 +2,14 @@ import mysql.connector
 from enum import Enum
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.automap import automap_base
 from sshtunnel import SSHTunnelForwarder
 import pandas as pd
+import pymysql
+import psycopg2
+import pymssql
+import os
+
 
 Session = sessionmaker(autoflush=False)
 
@@ -282,7 +288,6 @@ class DbObject:
 
         # Create a database type specific engine for the DbObject
         if self.db_type == 'MySQL':
-            import pymysql
             try:
                 self.engine = pymysql.connect(user=self.db_user, passwd=self.db_pass,
                                               host='127.0.0.1', port=self.local_port,
@@ -290,7 +295,6 @@ class DbObject:
             except Exception as e:
                 raise DbObjectError(e)
         elif self.db_type == 'PostgreSQL':
-            import psycopg2
             try:
                 self.engine = psycopg2.connect(user=self.db_user, password=self.db_pass,
                                                host=self.db_host, port=self.db_port,
@@ -298,7 +302,6 @@ class DbObject:
             except Exception as e:
                 raise DbObjectError(e)
         elif self.db_type == 'MSSQL':
-            import pymssql
             try:
                 self.engine = pymssql.connect(user=self.db_user, password=self.db_pass,
                                               host=f'{self.db_host}:{self.db_port}',
@@ -325,8 +328,6 @@ class DbObject:
             self.conn_str = f"postgresql+psycopg2://{self.db_user}:{self.db_pass}@" \
                             f"{self.db_host}:{self.db_port}/{self.db_name}"
         elif self.db_type == 'MSSQL':
-            import os
-
             if os.name == 'nt':
                 self.conn_str = f'mssql://{self.db_user}:{self.db_pass}@' \
                                 f'{self.db_host}:{self.db_port}/{self.db_name}?driver=SQL+Server'
@@ -364,7 +365,6 @@ class DbObject:
         table : class
             Requested table generated base class.
         """
-        from sqlalchemy.ext.automap import automap_base
 
         if hasattr(self, 'engine'):
             base = automap_base()
