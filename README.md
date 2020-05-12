@@ -4,12 +4,17 @@ databases (both types and servers).
 
 ---
 
-#### DBObjectCreator Setup
+#### DOC Setup
 To install this repository on your local environment:
 1. Clone the repo to your local machine using the Clone or Download button in the upper left
 or click this download link. https://github.com/BridgeCr/DOC/archive/master.zip
 2. In a terminal window navigate to the location the file was downloaded
-3. execute the following command `pip install DOC-master.zip` (change DOC-master.zip if you named it something else.
-4. Import the library into your project using `import DbObjectCreator`
+3. Execute the following command `pip install DOC-master.zip` (change DOC-master.zip if you named it something else.)
+
+#### DOC Usage
+1. Import the library into your project using `from DbObjectCreator import DbObjectCreator`
+2. Create a new DbObject using `new_db = DbObjectCreator.DbObject()`
+3. new_db can now be used to call multiple methods against the database.
+
 
 This library supports both Windows and OSX architecture. If installing on OSX you will need FreeTDS installed.
