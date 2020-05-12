@@ -7,6 +7,6 @@ databases (both types and servers).
 #### DBObjectCreator Setup
 This repo can be installed in a python 3 environment with the following command
 
-`pip install git+https:github.com/BridgeCr/DOC`
+`pip install git+https://github.com/BridgeCr/DOC`
 
 This library supports both Windows and OSX architecture. If installing on OSX you will need FreeTDS installed.
