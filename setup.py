@@ -11,7 +11,7 @@ setup(
     description='A database object creator',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/BridgeCr/davinci.git',
+    url='https://github.com/BridgeCr/DOC.git',
     packages=find_packages(),
     include_package_data=True,
     python_requires='>=3.7',
