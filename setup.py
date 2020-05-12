@@ -13,7 +13,7 @@ setup(
     long_description_content_type='text/markdown',
     url='https://github.com/BridgeCr/DOC.git',
     python_requires='>=3.7',
-    packages=find_packages('DbObjectCreator.py'),
+    install_requires=open('requirements.txt').read(),
     classifiers=[
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',
