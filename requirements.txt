@@ -3,6 +3,7 @@ cffi==1.14.0
 cryptography==2.9.2
 Cython==0.29.17
 mysql==0.0.2
+mysql-connector==2.2.9
 mysqlclient==1.4.6
 numpy==1.18.4
 pandas==1.0.3
