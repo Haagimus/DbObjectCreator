@@ -8,11 +8,11 @@ setup(
     name='DbObjectCreator',
     version=init.__version__,
     author=init.__author__,
-    author_email="ghaag@bridgeconnector.com",
+    author_email="haagimus@gmail.com",
     description='A database object creator',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/BridgeCr/DOC.git',
+    url='https://github.com/haagimus/DbObjectCreator.git',
     packages=['DbObjectCreator'],
     install_requires=open('requirements.txt').read(),
     classifiers=[
