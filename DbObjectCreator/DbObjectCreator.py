@@ -4,7 +4,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
 from sshtunnel import SSHTunnelForwarder
-import pandas as pd
 import pymysql
 import psycopg2
 import pymssql
