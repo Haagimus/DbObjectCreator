@@ -10,7 +10,7 @@ This library can be installed directly from GitHub or locally:
 Run `pip install Cython` before proceeding with either install. This package is required prior to installing this library.
 
 #### To install via GitHub
-1. Run the command `git+ssh://github.com/haagimus/DbObjectCreator.git`
+1. Run the command `pip install git+ssh://github.com/haagimus/DbObjectCreator.git`
 
 #### To install locally
 1. Clone the repo to your local machine using the Clone or Download button in the upper left

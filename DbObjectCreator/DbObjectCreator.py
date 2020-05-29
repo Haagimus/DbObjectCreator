@@ -3,6 +3,7 @@ from enum import Enum
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.sql.elements import BinaryExpression
 from sshtunnel import SSHTunnelForwarder
 import pymysql
 import psycopg2
@@ -29,7 +30,7 @@ class DbObject:
         A DbObject class object
     """
 
-    def __init__(self, dbtype, db_host, db_port, db_name, db_user, db_pass,
+    def __init__(self, dbtype, db_host, db_port, db_user, db_pass, db_name=None,
                  ssh_host=None, ssh_port=None, ssh_pk=None, ssh_user=None, tunnel=None, sa_engine=None,
                  engine=None, session=None, cursor=None, conn_str=None, local_port=None, local_addr=None):
         """Create a new :class:`.DbObject` instance.
@@ -288,9 +289,16 @@ class DbObject:
         # Create a database type specific engine for the DbObject
         if self.db_type == 'MySQL':
             try:
-                self.engine = pymysql.connect(user=self.db_user, passwd=self.db_pass,
-                                              host='127.0.0.1', port=self.local_port,
-                                              database=self.db_name)
+                if self.tunnel and self.local_port is not None:
+                    # If there is an SSH tunnel try and connect through the local host and port
+                    self.engine = pymysql.connect(user=self.db_user, passwd=self.db_pass,
+                                                  host='127.0.0.1', port=self.local_port,
+                                                  database=self.db_name)
+                else:
+                    # if there is no SSH tunnel try and connect directly to the host and port
+                    self.engine = pymysql.connect(user=self.db_user, passwd=self.db_pass,
+                                                  host=self.db_host, port=self.db_port,
+                                                  database=self.db_name)
             except Exception as e:
                 raise DbObjectError(e)
         elif self.db_type == 'PostgreSQL':
@@ -317,9 +325,12 @@ class DbObject:
             A generated database connection string.
         """
         if self.db_type == 'MySQL':
-            if hasattr(self, '_tunnel'):
+            if self.tunnel is not None:
                 self.conn_str = f"mysql+pymysql://{self.db_user}:{self.db_pass}@" \
                                 f"localhost:{self.local_port}/{self.db_name}"
+            elif self.tunnel is None:
+                self.conn_str = f"mysql+pymysql://{self.db_user}:{self.db_pass}@" \
+                                f"{self.db_host}:{self.db_port}/{self.db_name}"
             else:
                 raise DbObjectError(
                     'SSH tunnel not established, please setup the SSH tunnel before attempting to connect the engine.')
@@ -349,7 +360,7 @@ class DbObject:
             self.initialize_engine()
 
         elif hasattr(self, 'engine'):
-            self._session = Session(bind=self._engine, autoflush=False, autocommit=False)
+            self._session = Session(bind=self.engine, autoflush=False, autocommit=False)
 
     def reflect_database_table(self, table_name=None):
         """Generates a class model of the requested table.
@@ -424,26 +435,6 @@ class DbObject:
         except Exception as e:
             raise DbObjectError(e)
 
-    def orm_sql_query(self):
-        """Attempts to execute the ORM query argument. This requires a table reflection or existing
-        model to perform the query.
-
-        Parameters
-        ----------
-        query : str
-            The raw sql query that you want to execute.
-
-        Returns
-        ----------
-        dict : tuple
-            Dictionary of tuples containing the requested table rows.
-        """
-        try:
-            self.initialize_session()
-            # TODO: Write this function
-        finally:
-            self.session.close()
-
     def string_sql_query(self, query=None):
         """Attempts to execute the passed in query argument.
 
@@ -466,6 +457,55 @@ class DbObject:
 
         except Exception as e:
             raise DbObjectError(e)
+
+    def orm_get_rows(self, table_name, filter_text=None, distinct=None):
+        """
+        Returns all rows from selected columns in a table, provides options to filter your query and return only
+        distinct values.
+
+        Parameters
+        ----------
+        table_name: str
+            The table name you want to search within.
+        filter_text: str | dict
+            Text that you want to filter source by. Allows a dict of multiple filter texts to be passed.
+        distinct: bool
+            True indicates you only want distinct source without duplicates.
+
+        Returns
+        ----------
+        source : list
+        """
+        self.session = Session(bind=self.sa_engine)
+        table_model = self.reflect_database_table(table_name=table_name)
+        if filter_text is None:
+            if distinct:
+                results = self.session.query(table_model).distinct().all()
+            else:
+                results = self.session.query(table_model).all()
+        elif type(filter_text) == dict:
+            query = self.session.query(table_model)
+            for attr, value in filter_text.items():
+                if value == '':
+                    pass
+                else:
+                    query = query.filter(getattr(table_model, attr) == value)
+            if distinct:
+                results = query.distinct().all()
+            else:
+                results = query.all()
+        elif type(filter_text) == BinaryExpression:
+            if distinct:
+                results = self.session.query(table_model).filter(filter_text).distinct().all()
+            else:
+                results = self.session.query(table_model).filter(filter_text).all()
+        else:
+            if distinct:
+                results = self.session.query(table_model).filter(filter_text).distinct().all()
+            else:
+                results = self.session.query(table_model).filter(filter_text).all()
+
+        return results
 
 
 class DbObjectError(Exception):
