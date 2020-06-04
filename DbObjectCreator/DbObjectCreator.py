@@ -285,7 +285,7 @@ class DbObject:
             # The database is either a postgresql or mssql which do not require an SSH Tunnel proxy so just pass
             pass
 
-    def initialize_engine(self, use_schema=False):
+    def initialize_engine(self):
         """Instantiates a sqlalchemy engine for the requested database then binds the connection string and engine to their respective properties within the DbObject.
 
         Yields
