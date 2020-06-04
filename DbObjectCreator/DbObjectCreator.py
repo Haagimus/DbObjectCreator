@@ -32,7 +32,8 @@ class DbObject:
 
     def __init__(self, dbtype, db_host, db_port, db_user, db_pass, db_name=None,
                  ssh_host=None, ssh_port=None, ssh_pk=None, ssh_user=None, tunnel=None, sa_engine=None,
-                 engine=None, session=None, cursor=None, conn_str=None, local_port=None, local_addr=None):
+                 engine=None, session=None, cursor=None, conn_str=None, local_port=None, local_addr=None,
+                 schema=None):
         """Create a new :class:`.DbObject` instance.
 
         Summary
@@ -78,6 +79,8 @@ class DbObject:
             The local port provided by the tunnel local_bind_port
         local_addr: str
             The local address provided by the tunnel local_bind_address.
+        schema: str
+            (Only applies to PostgreSQL and MSSQL) The schema name that you want to manipulate tables and data within.
         """
         self._db_type: int = DbType(dbtype).name
         self.__ssh_host: str = ssh_host
@@ -97,6 +100,7 @@ class DbObject:
         self._conn_str: str = conn_str
         self._local_port: int = local_port
         self._local_address: str = local_addr
+        self._schema: str = schema
 
     # region Getters and Setters for the object
     @property
@@ -243,6 +247,14 @@ class DbObject:
     def local_address(self, local_address):
         self._local_address = local_address
 
+    @property
+    def schema(self):
+        return self._schema
+
+    @schema.setter
+    def schema(self, schema):
+        self._schema = schema
+
     # endregion
 
     def create_tunnel(self):
@@ -273,7 +285,7 @@ class DbObject:
             # The database is either a postgresql or mssql which do not require an SSH Tunnel proxy so just pass
             pass
 
-    def initialize_engine(self):
+    def initialize_engine(self, use_schema=False):
         """Instantiates a sqlalchemy engine for the requested database then binds the connection string and engine to their respective properties within the DbObject.
 
         Yields
