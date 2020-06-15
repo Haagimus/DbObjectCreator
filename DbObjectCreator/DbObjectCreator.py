@@ -32,8 +32,8 @@ class DbObject:
 
     def __init__(self, dbtype, db_host, db_port, db_user, db_pass, db_name=None,
                  ssh_host=None, ssh_port=None, ssh_pk=None, ssh_user=None, tunnel=None, sa_engine=None,
-                 engine=None, session=None, cursor=None, conn_str=None, local_port=None, local_addr=None,
-                 schema=None):
+                 engine=None, sa_session=None, session=None, cursor=None, conn_str=None, local_port=None,
+                 local_addr=None, schema=None):
         """Create a new :class:`.DbObject` instance.
 
         Summary
@@ -69,8 +69,10 @@ class DbObject:
             This is a sqlalchemy database connection engine used for performing reflections and orm queries.
         engine: object
             This is a database specific connection engine used for raw sql query execution.
-        session: sessionmaker
+        sa_session: sessionmaker
             Manages persistence operations for ORM-mapped objects.
+        session: sessionmaker
+            Manages persistence operations for raw sql queries.
         cursor: object
             This is the object you use to interact with the database.
         conn_str: str
@@ -95,6 +97,7 @@ class DbObject:
         self._tunnel: SSHTunnelForwarder = tunnel
         self._sa_engine: object = sa_engine
         self._engine: object = engine
+        self._sa_session: sessionmaker = sa_session
         self._session: sessionmaker = session
         self._cursor: object = cursor
         self._conn_str: str = conn_str
@@ -206,6 +209,14 @@ class DbObject:
     @sa_engine.setter
     def sa_engine(self, sa_engine):
         self._sa_engine = sa_engine
+
+    @property
+    def sa_session(self):
+        return self._sa_session
+
+    @sa_session.setter
+    def sa_session(self, sa_session):
+        self._sa_session = sa_session
 
     @property
     def session(self):
@@ -373,6 +384,20 @@ class DbObject:
 
         elif hasattr(self, 'engine'):
             self._session = Session(bind=self.engine, autoflush=False, autocommit=False)
+
+    def initialize_sa_session(self):
+        """Creates a sessionmaker factory that can be used to run queries against the database and also sets the self.session property.
+
+        Yields
+        ----------
+        self.session : Session
+            A sessionmaker session for executing queries
+        """
+        if not hasattr(self, 'sa_engine'):
+            self.initialize_engine()
+
+        elif hasattr(self, 'sa_engine'):
+            self._sa_session = Session(bind=self.sa_engine, autoflush=False, autocommit=False)
 
     def reflect_database_table(self, table_name=None):
         """Generates a class model of the requested table.
