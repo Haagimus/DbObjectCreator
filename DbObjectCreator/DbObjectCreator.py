@@ -1,7 +1,7 @@
 import mysql.connector
 from enum import Enum
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Query
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.sql.elements import BinaryExpression
 from sshtunnel import SSHTunnelForwarder
@@ -413,15 +413,21 @@ class DbObject:
             Requested table generated base class.
         """
 
-        if hasattr(self, 'engine'):
+        if hasattr(self, 'sa_engine'):
             base = automap_base()
             base.metadata.drop_all(self.sa_engine)
             base.metadata.create_all(self.sa_engine)
 
             # reflect the tables
-            base.prepare(self.sa_engine, reflect=True)
+            if self.db_type == 'PostgreSQL':
+                base.prepare(self.sa_engine, reflect=True, schema=self.schema)
+            else:
+                base.prepare(self.sa_engine, reflect=True)
             try:
-                table = base.metadata.tables[table_name]
+                if self.db_type == 'PostgreSQL':
+                    table = base.metadata.tables[self.schema + '.' + table_name]
+                else:
+                    table = base.metadata.tables[table_name]
                 return table
             except BaseException as e:
                 raise DbObjectError(e)
@@ -495,54 +501,94 @@ class DbObject:
         except Exception as e:
             raise DbObjectError(e)
 
-    def orm_get_rows(self, table_name, filter_text=None, distinct=None):
+    def orm_get_rows(self, table_name, filter_text=None, distinct=None, delete=False):
         """
         Returns all rows from selected columns in a table, provides options to filter your query and return only
         distinct values.
 
         Parameters
         ----------
-        table_name: str
-            The table name you want to search within.
+        table_name: str | DeclarativeMeta
+            The table name you want to search within. Alternatively an ORM model may be passed directly.
         filter_text: str | dict
             Text that you want to filter source by. Allows a dict of multiple filter texts to be passed.
         distinct: bool
             True indicates you only want distinct source without duplicates.
+        delete : bool
+            True indicates you want to delete all returned rows from the target table.
 
         Returns
         ----------
         source : list
         """
         self.session = Session(bind=self.sa_engine)
-        table_model = self.reflect_database_table(table_name=table_name)
+        if type(table_name) == str:
+            table_model = self.reflect_database_table(table_name=table_name)
+        else:
+            table_model = table_name
         if filter_text is None:
             if distinct:
-                results = self.session.query(table_model).distinct().all()
+                results = Query(table_model, self.session).distinct().all()
             else:
-                results = self.session.query(table_model).all()
+                results = Query(table_model, self.session).all()
         elif type(filter_text) == dict:
-            query = self.session.query(table_model)
+            query = Query(table_model, self.session)
             for attr, value in filter_text.items():
                 if value == '':
                     pass
                 else:
-                    query = query.filter(getattr(table_model, attr) == value)
+                    query = Query(table_model, self.session).filter(getattr(table_model, attr) == value, )
             if distinct:
                 results = query.distinct().all()
             else:
                 results = query.all()
         elif type(filter_text) == BinaryExpression:
             if distinct:
-                results = self.session.query(table_model).filter(filter_text).distinct().all()
+                results = Query(table_model, self.session).filter(filter_text).distinct().all()
             else:
-                results = self.session.query(table_model).filter(filter_text).all()
+                results = Query(table_model, self.session).filter(filter_text).all()
         else:
             if distinct:
-                results = self.session.query(table_model).filter(filter_text).distinct().all()
+                results = Query(table_model, self.session).filter(filter_text).distinct().all()
             else:
-                results = self.session.query(table_model).filter(filter_text).all()
+                results = Query(table_model, self.session).filter(filter_text).all()
+
+        if delete:
+            print(f'Attempting to delete {len(results)} from {table_name.name}.')
+            try:
+                Query(table_model, self.session).filter(filter_text).delete(synchronize_session=False)
+                self.session.commit()
+                return
+            except Exception as e:
+                print(f'ERROR:: The delete operation was unsuccessful, operation aborted.')
+                self.session.rollback()
+                raise DbObjectError(e)
 
         return results
+
+    def add_column_to_db_table(self, table, column):
+        """
+        Updates an existing database table with new columns.
+
+        Parameters
+        ----------
+        table: Table
+            The table you want to add the column(s) to.
+        column : sqlalchemy.Column | list
+            The sqlalchemy Column or list of Column object(s) that you want to append.
+
+        Returns
+        ----------
+        None
+        """
+        try:
+            if type(column) == list:
+                for c in column:
+                    table.append_column(c)
+                else:
+                    table.append_column(c)
+        except Exception as e:
+            raise DbObjectError(e)
 
 
 class DbObjectError(Exception):
