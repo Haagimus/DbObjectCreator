@@ -556,7 +556,10 @@ class DbObject:
         if delete:
             print(f'Attempting to delete {len(results)} from {table_name.name}.')
             try:
-                Query(table_model, self.session).filter(filter_text).delete(synchronize_session=False)
+                if filter_text is None:
+                    Query(table_model, self.session).delete(synchronize_session=False)
+                else:
+                    Query(table_model, self.session).filter(filter_text).delete(synchronize_session=False)
                 self.session.commit()
                 return
             except Exception as e:
