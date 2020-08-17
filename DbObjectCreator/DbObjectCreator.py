@@ -553,7 +553,7 @@ class DbObject:
             else:
                 results = Query(table_model, self.session).filter(filter_text).all()
 
-        if delete:
+        if delete and len(results) > 0:
             print(f'Attempting to delete {len(results)} from {table_name.name}.')
             try:
                 if filter_text is None:
