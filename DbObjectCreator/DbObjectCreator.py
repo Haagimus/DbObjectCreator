@@ -501,7 +501,7 @@ class DbObject:
         except Exception as e:
             raise DbObjectError(e)
 
-    def orm_get_rows(self, table_name, filter_text=None, distinct=None, delete=False):
+    def orm_get_rows(self, table_name, filter_text=None, distinct=False, delete=False):
         """
         Returns all rows from selected columns in a table, provides options to filter your query and return only
         distinct values.
