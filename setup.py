@@ -12,7 +12,7 @@ setup(
 		description='A database object creator',
 		long_description=long_description,
 		long_description_content_type='text/markdown',
-		url='https://github.com/haagimus/DbObjectCreator.git',
+		url='https://github.com/Haagimus/DbObjectCreator/releases/tag/v1.0.11',
 		packages=['DbObjectCreator'],
 		install_requires=[
 			'bcrypt',
