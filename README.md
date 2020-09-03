@@ -5,12 +5,10 @@ databases (both types and servers).
 ---
 
 ## DOC Setup
-This library can be installed directly from GitHub or locally:
+This library can be installed via Pypi.org[https://pypi.org/project/DbObjectCreator/] or locally:
 
 Run `pip install Cython` before proceeding with either install. This package is required prior to installing this library.
-
-#### To install via GitHub
-1. Run the command `pip install git+ssh://github.com/haagimus/DbObjectCreator.git`
+This library can now be installed by running `pip install DbObjectCreator`
 
 #### To install locally
 1. Clone the repo to your local machine using the Clone or Download button in the upper left
