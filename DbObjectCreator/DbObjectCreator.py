@@ -83,189 +83,26 @@ class DbObject:
         schema: str
             (Only applies to PostgreSQL and MSSQL) The schema name that you want to manipulate tables and data within.
         """
-        self._db_type: int = DbType(dbtype).name
-        self.__ssh_host: str = ssh_host
-        self.__ssh_port: int = ssh_port
-        self.__ssh_pk: str = ssh_pk
-        self.__ssh_user: str = ssh_user
-        self.__db_host: str = db_host
-        self.__db_port: int = db_port
-        self.__db_name: str = db_name
-        self.__db_user: str = db_user
-        self.__db_pass: str = db_pass
-        self._tunnel: SSHTunnelForwarder = tunnel
-        self._sa_engine: object = sa_engine
-        self._engine: object = engine
-        self._sa_session: sessionmaker = sa_session
-        self._session: sessionmaker = session
-        self._cursor: object = cursor
-        self._conn_str: str = conn_str
-        self._local_port: int = local_port
-        self._local_address: str = local_addr
-        self._schema: str = schema
-
-    # region Getters and Setters for the object
-    @property
-    def db_type(self):
-        return self._db_type
-
-    @db_type.setter
-    def db_type(self, db_type):
-        self._db_type = DbType(db_type).name
-
-    @property
-    def ssh_host(self):
-        return self.__ssh_host
-
-    @ssh_host.setter
-    def ssh_host(self, ssh_host):
-        self.__ssh_host = ssh_host
-
-    @property
-    def ssh_port(self):
-        return self.__ssh_port
-
-    @ssh_port.setter
-    def ssh_port(self, ssh_port):
-        self.__ssh_port = ssh_port
-
-    @property
-    def ssh_pk(self):
-        return self.__ssh_pk
-
-    @ssh_pk.setter
-    def ssh_pk(self, ssh_pk):
-        self.__ssh_pk = ssh_pk
-
-    @property
-    def ssh_user(self):
-        return self.__ssh_user
-
-    @ssh_user.setter
-    def ssh_user(self, ssh_user):
-        self.__ssh_user = ssh_user
-
-    @property
-    def db_host(self):
-        return self.__db_host
-
-    @db_host.setter
-    def db_host(self, db_host):
-        self.__db_host = db_host
-
-    @property
-    def db_port(self):
-        return self.__db_port
-
-    @db_port.setter
-    def db_port(self, db_port):
-        self.__db_port = db_port
-
-    @property
-    def db_name(self):
-        return self.__db_name
-
-    @db_name.setter
-    def db_name(self, db_name):
-        self.__db_name = db_name
-
-    @property
-    def db_user(self):
-        return self.__db_user
-
-    @db_user.setter
-    def db_user(self, db_user):
-        self.__db_user = db_user
-
-    @property
-    def db_pass(self):
-        return self.__db_pass
-
-    @db_pass.setter
-    def db_pass(self, db_pass):
-        self.__db_pass = db_pass
-
-    @property
-    def tunnel(self):
-        return self._tunnel
-
-    @tunnel.setter
-    def tunnel(self, tunnel):
-        self._tunnel = tunnel
-
-    @property
-    def engine(self):
-        return self._engine
-
-    @engine.setter
-    def engine(self, engine):
-        self._engine = engine
-
-    @property
-    def sa_engine(self):
-        return self._sa_engine
-
-    @sa_engine.setter
-    def sa_engine(self, sa_engine):
-        self._sa_engine = sa_engine
-
-    @property
-    def sa_session(self):
-        return self._sa_session
-
-    @sa_session.setter
-    def sa_session(self, sa_session):
-        self._sa_session = sa_session
-
-    @property
-    def session(self):
-        return self._session
-
-    @session.setter
-    def session(self, session):
-        self._session = session
-
-    @property
-    def cursor(self):
-        return self._cursor
-
-    @cursor.setter
-    def cursor(self, cursor):
-        self._cursor = cursor
-
-    @property
-    def conn_str(self):
-        return self._conn_str
-
-    @conn_str.setter
-    def conn_str(self, conn_str):
-        self._conn_str = conn_str
-
-    @property
-    def local_port(self):
-        return self._local_port
-
-    @local_port.setter
-    def local_port(self, local_port):
-        self._local_port = local_port
-
-    @property
-    def local_address(self):
-        return self._local_address
-
-    @local_address.setter
-    def local_address(self, local_address):
-        self._local_address = local_address
-
-    @property
-    def schema(self):
-        return self._schema
-
-    @schema.setter
-    def schema(self, schema):
-        self._schema = schema
-
-    # endregion
+        self.db_type: int = DbType(dbtype).name
+        self.ssh_host: str = ssh_host
+        self.ssh_port: int = ssh_port
+        self.ssh_pk: str = ssh_pk
+        self.ssh_user: str = ssh_user
+        self.db_host: str = db_host
+        self.db_port: int = db_port
+        self.db_name: str = db_name
+        self.db_user: str = db_user
+        self.db_pass: str = db_pass
+        self.tunnel: SSHTunnelForwarder = tunnel
+        self.sa_engine: object = sa_engine
+        self.engine: object = engine
+        self.sa_session: sessionmaker = sa_session
+        self.session: sessionmaker = session
+        self.cursor: object = cursor
+        self.conn_str: str = conn_str
+        self.local_port: int = local_port
+        self.local_address: str = local_addr
+        self.schema: str = schema
 
     def create_tunnel(self):
         """Creates an SSH proxy tunnel for secure connections then binds that tunnel to the _tunnel property of the DbObject.
@@ -382,7 +219,7 @@ class DbObject:
             self.initialize_engine()
 
         elif hasattr(self, 'engine'):
-            self._session = Session(bind=self.engine, autoflush=False, autocommit=False)
+            self.session = Session(bind=self.engine, autoflush=False, autocommit=False)
 
     def initialize_sa_session(self):
         """Creates a sessionmaker factory that can be used to run queries against the database and also sets the self.session property.
@@ -396,7 +233,7 @@ class DbObject:
             self.initialize_engine()
 
         elif hasattr(self, 'sa_engine'):
-            self._sa_session = Session(bind=self.sa_engine, autoflush=False, autocommit=False)
+            self.sa_session = Session(bind=self.sa_engine, autoflush=False, autocommit=False)
 
     def reflect_database_table(self, table_name=None):
         """Generates a class model of the requested table.
@@ -467,7 +304,7 @@ class DbObject:
                         database=self.db_name)
         except Exception as e:
             raise DbObjectError(e)
-        self._cursor = cnx.cursor()
+        self.cursor = cnx.cursor()
 
     def close_all(self):
         """Closes any existing database workers if they are open. Includes cursors, sessions, engines and tunnels.
@@ -576,30 +413,6 @@ class DbObject:
                 raise DbObjectError(e)
 
         return results
-
-    def add_column_to_db_table(self, table, column):
-        """
-        Updates an existing database table with new columns.
-
-        Parameters
-        ----------
-        table: Table
-            The table you want to add the column(s) to.
-        column : sqlalchemy.Column | list
-            The sqlalchemy Column or list of Column object(s) that you want to append.
-
-        Returns
-        ----------
-        None
-        """
-        try:
-            if type(column) == list:
-                for c in column:
-                    table.append_column(c)
-                else:
-                    table.append_column(c)
-        except Exception as e:
-            raise DbObjectError(e)
 
 
 class DbObjectError(Exception):
