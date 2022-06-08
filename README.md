@@ -5,10 +5,7 @@ databases (both types and servers).
 ---
 
 ## DOC Setup
-This library can be installed via Pypi.org[https://pypi.org/project/DbObjectCreator/] or locally:
-
-Run `pip install Cython` before proceeding with either install. This package is required prior to installing this library.
-This library can now be installed by running `pip install DbObjectCreator`
+Just clone and install to add the package to your environment.
 
 ## DOC Usage
 1. Import the library into your project using `from DbObjectCreator import DbObjectCreator`

@@ -145,3 +145,4 @@ assets/
 DbObjectCreator.egg-info/
 backup_README.md
 tests.py
+settings.json

@@ -33,7 +33,8 @@ class DbObject:
                  ssh_host=None, ssh_port=None, ssh_pk=None, ssh_user=None, tunnel=None, sa_engine=None,
                  engine=None, sa_session=None, session=None, cursor=None, conn_str=None, local_port=None,
                  local_addr=None, schema=None):
-        """Create a new :class:`.DbObject` instance.
+        """
+        Create a new :class:`.DbObject` instance.
 
         Summary
         ----------
@@ -63,7 +64,7 @@ class DbObject:
         db_pass : str
             This is the login account password for the database.
         tunnel: SSHTunnelForwarder
-            This is an established SSH Tunnel proxy when established.
+            This is establishes an SSH Tunnel proxy.
         sa_engine: object
             This is a sqlalchemy database connection engine used for performing reflections and orm queries.
         engine: object
@@ -83,6 +84,7 @@ class DbObject:
         schema: str
             (Only applies to PostgreSQL and MSSQL) The schema name that you want to manipulate tables and data within.
         """
+        
         self.db_type: int = DbType(dbtype).name
         self.ssh_host: str = ssh_host
         self.ssh_port: int = ssh_port
