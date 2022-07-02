@@ -5,11 +5,11 @@ databases (both types and servers).
 ---
 
 ## DOC Setup
-Just clone and install to add the package to your environment.
+Clone to your project directory and run `python setup.py bdist_wheel` to install.
 
 ## DOC Usage
-1. Import the library into your project using `from DbObjectCreator import DbObjectCreator`
-2. Create a new DbObject using `new_db = DbObjectCreator.DbObject()`
+1. Import the library into your project using `from DbObjectCreator import DbObject, DbObjectError`
+2. Create a new DbObject using `new_db = DbObject()`
 3. new_db can now be used to call multiple methods against the database.
 
 

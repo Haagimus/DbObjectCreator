@@ -1,4 +1,3 @@
-import mysql.connector
 from enum import Enum
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Query
@@ -106,7 +105,7 @@ class DbObject:
         self.local_address: str = local_addr
         self.schema: str = schema
 
-    def create_tunnel(self):
+    def create_ssh_tunnel(self):
         """Creates an SSH proxy tunnel for secure connections then binds that tunnel to the _tunnel property of the DbObject.
 
         Parameters
@@ -168,6 +167,7 @@ class DbObject:
                                                host=self.db_host, port=self.db_port,
                                                database=self.db_name)
             except Exception as e:
+
                 raise DbObjectError(e)
         elif self.db_type == 'MSSQL':
             try:
@@ -251,7 +251,7 @@ class DbObject:
             Requested table generated base class.
         """
 
-        if hasattr(self, 'sa_engine'):
+        if not self.sa_engine is None:
             base = automap_base()
             base.metadata.drop_all(self.sa_engine)
             base.metadata.create_all(self.sa_engine)
@@ -284,7 +284,7 @@ class DbObject:
         try:
             if self.db_type == 'MySQL':
                 with self.tunnel:
-                    cnx = mysql.connector.connect(
+                    cnx = pymysql.connector.connect(
                             host=self.local_address,
                             port=self.local_port,
                             user=self.db_user,
@@ -416,6 +416,13 @@ class DbObject:
 
         return results
 
+    def get_available_table_names(self):
+        """
+        Returns a list of all table names in the database.
+        """
+        Base = automap_base()
+        Base.prepare(self.sa_engine, reflect=True)
+        return Base.classes.keys()
 
 class DbObjectError(Exception):
     """A custom exception handler for internal errors."""

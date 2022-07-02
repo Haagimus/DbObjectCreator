@@ -1,6 +1,6 @@
 [tool.poetry]
 name = 'DbObjectCreator'
-version = '1.0.16'
+version = "1.1.3"
 description = 'A database object creator'
 authors = ['Gary Haag <haagimus@gmail.com>']
 maintainers = ['Gary Haag <haagimus@gmail.com>']
@@ -13,7 +13,12 @@ keywords = ['Database',
             'MySQL',
             'MSSQL',
             'PostgreSQL',
-            'Packaging']
+            'Packaging',
+            'ETL',
+            'Data',
+            'Warehouse',
+            'Data Warehouse',
+            ]
 
 [tool.poetry.dependencies]
 python = '^3.7'
@@ -24,11 +29,10 @@ importlib_metadata = '*'
 numpy = '*'
 pandas = '*'
 paramiko = '*'
-psycopg2 = '*'
+psycopg2-binary = '*'
 pycparser = '*'
 pymssql = '*'
 pymysql = '*'
-mysql-connector = '*'
 PyNaCl = '*'
 python-dateutil = '*'
 pytz = '*'
@@ -36,11 +40,12 @@ six = '*'
 SQLAlchemy = '*'
 sshtunnel = '*'
 wheel = '*'
-mysql-connector-python-rf = "^2.2.2"
 
 [tool.poetry.dev-dependencies]
 Cython = '*'
 black = {version = "^22.3.0", allow-prereleases = true}
+toml = '*'
+ipykernel = "^6.15.0"
 
 [build-system]
 requires = ['poetry>=0.12']
@@ -49,3 +54,5 @@ build-backend = 'poetry.masonry.api'
 [tool.poetry.scripts]
 
 [tool.poetry.urls]
+
+[tool.poetry_bumpversion.file."DbObjectCreator/__init__.py"]
